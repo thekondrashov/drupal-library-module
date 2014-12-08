@@ -1,0 +1,133 @@
+<?php
+
+/**
+* @file
+* Модули на drupal.org соответствуют строгим требованиям к комментированию.
+* Drupal использует Doxygen для получения документации из исходных кодов.
+* @file означает, что этот комментарий относится ко всему файлу.
+* http://azbukaweb.ru/writing-comments-and-implementing-your-first-hook
+* Doxygen and comment formatting conventions
+* http://drupal.org/node/1354
+*/
+
+/**
+ * @file
+ * Все функции в модуле, которые будет вызывать сам Drupal, являются хуками и должны иметь имена в формате:
+ * {имямодуля}_{имяфункции}, где {имяфункции} является предопределенным суффиксом имени функции.
+ * http://azbukaweb.ru/getting-started
+ */
+
+/**
+* Помощь и дополнительная информация для пользователей.
+*
+* hook_help рекомендуется включать во все contrib модули.
+* hook_help предоставляет помощь и дополнительную информацию для пользователей.
+* http://azbukaweb.ru/writing-comments-and-implementing-your-first-hook
+* Help text standard
+* http://drupal.org/node/632280
+* hook_help
+* http://api.drupal.org/api/function/hook_help
+*
+* @param path
+*   Параметр $path предоставляет контекст для справки: где в Drupal или в модуле пользователь получит доступ к справке.
+*   Рекомендуется обрабатывать эту переменную с помощью выражения switch.
+* @param arg
+*   Array that holds the current path as returned from arg() function
+*/
+function lib_help($path, $arg) {
+  switch ($path) {
+    case "admin/help#lib":
+      /**
+      * Функция t() оборачивает текст для его перевода.
+      * Эта функция не только позволяет переводить текст, она может дать коду дополнительный слой защиты.
+      * http://azbukaweb.ru/writing-comments-and-implementing-your-first-hook
+      * Localization API
+      * http://drupal.org/node/322729
+      */
+      return '<p>'. t('Справка по модулю "Библиотека"') .'</p>';
+      break;
+  }
+}
+
+
+/**
+* hook_block_info()
+*
+* Этот хук сообщает Drupal'у о том, что модуль создает блоки.
+* Можно только один раз использовать данный хук в любом модуле,
+* так что, этот хук должен объявлять все блоки, которые необходимы модулю.
+* http://azbukaweb.ru/declaring-the-block
+*
+* См. hook_block_info для получения полного списка доступных параметров.
+* http://api.drupal.org/api/drupal/modules--block--block.api.php/function/hook_block_info/7
+*
+* @return
+*   Возвращаемое значение представляет собой ассоциативный массив.
+*   Он является предпочтительной программной структурой Drupal'а.
+*   http://azbukaweb.ru/declaring-the-block
+*/
+function lib_block_info() {
+  $blocks['lib'] = array(
+    'info' => t('Библиотека ОАО «УМЗ»'), // Имя, которое будет показано в списке блоков (обязательный параметр)
+    'cache' => DRUPAL_CACHE_PER_ROLE, // устанавливаем кэширование в значение по умолчанию (опциональный параметр)
+  );
+  return $blocks;
+}
+
+
+/**
+* Пользовательская функция.
+*
+* Функция для получения последних публикаций.
+* Используем наглядное слово, которое не является хуком Drupal.
+* Устанавливаем начальную и конечную даты, получаем публикации из БД, сохраненные за этот период.
+* http://azbukaweb.ru/retrieving-data
+*
+* @return
+*   Результирующий набор искомых публикаций.
+*/
+function lib_contents() {
+  // Получаем сегодняшнюю дату.
+  $today = getdate();
+  // Вычисляем дату недельной давности (в секундах от начала эпохи)
+  // http://www.php.net/manual/en/function.mktime.php
+  $start_time = mktime(0, 0, 0, $today['mon',($today['mday'] - 7), $today['year']);
+  // Получаем все публикации за последнюю неделю.
+  $end_time = time();
+
+  // Используем API базы данных от Drupal для получения текущих публикаций.
+  /**
+   * строим запрос, используя метод db_select,
+   * который в качестве аргументов принимает таблицу с именем('node') и псевдоним 'n'
+   * @var [type]
+   */
+  >$query = db_select('node', 'n')
+    /**
+     *  Метод fields использует таблицу, заданную псевдонимом 'n' для выбора полей,
+     *  перечисленных в массиве второго аргумента
+     */
+    ->fields('n', array('nid', 'title', 'created'))
+    /**
+     * Метод condition принимает три аргумента. Первый - поле, второй - значение, третий - оператор.
+     * Если оператор не определен, как в случае с полем 'status', подразумевается оператор =.
+     */
+    ->condition('status', 1) // Опубликовано.
+    ->condition('created', array($start_time, $end_time), 'BETWEEN')
+    /**
+     * Метод orderBy сортирует по значению поля из первого аргумента, в порядке, заданном вторым аргументом.
+     */
+    ->orderBy('created', 'DESC') // Последние сверху.
+    /**
+     * Метод execute компилирует и выполняет запрос и возвращает результирующий набор или объект.
+     */
+    ->execute();
+  return $query;
+}
+
+/**
+ * @file
+ * Согласно стандарту кодирования (Coding standards), закрывающий PHP-тег опускается.
+ * Включение закрывающего тега может стать причиной неожиданного поведения некоторых серверов.
+ * http://azbukaweb.ru/getting-started
+ * http://drupal.org/node/318
+ */
